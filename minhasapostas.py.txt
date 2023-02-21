@@ -1,0 +1,67 @@
+import requests
+from bs4 import BeautifulSoup
+import telegram
+import sched
+import time
+
+print("Script iniciado")
+
+# Definir a API KEY e o chat_id do Telegram
+bot_token = "5976410179:AAFKKBftsTYVyrHlsYcES8fXNEHKBRliw3A"
+chat_id = "@MINHASAPOSTASBOT"
+
+# Criar um objeto de agendamento
+s = sched.scheduler(time.time, time.sleep)
+
+# Função para verificar se um evento ocorreu em um jogo
+def verificar_evento(evento):
+    # URL do site que contém as informações dos jogos
+    url = "https://oddspedia.com/"
+
+    # Obter o HTML do site
+    r = requests.get(url)
+
+    # Analisar o HTML usando a biblioteca BeautifulSoup
+    soup = BeautifulSoup(r.content, "html.parser")
+
+    # Encontrar todos os jogos em andamento
+    jogos = soup.find_all("div", {"class": "event-card__content"})
+
+    # Verificar se o evento ocorreu em algum dos jogos
+    for jogo in jogos:
+        # Obter as informações do jogo
+        equipe_casa = jogo.find("div", {"class": "event-card__participant--home"}).text.strip()
+        equipe_visitante = jogo.find("div", {"class": "event-card__participant--away"}).text.strip()
+        placar = jogo.find("div", {"class": "event-card__scores"}).text.strip()
+        cartoes = jogo.find("div", {"class": "event-card__incident--yellowred"}).text.strip()
+        gols = jogo.find("div", {"class": "event-card__part"}).text.strip()
+        escanteios = jogo.find("div", {"class": "event-card__part--corners"}).text.strip()
+
+        # Verificar se um cartão vermelho foi mostrado
+        if evento == "cartao_vermelho" and cartoes:
+            mensagem = f"Cartão vermelho em {equipe_casa} x {equipe_visitante} ({placar})"
+            print(mensagem)
+
+            # Enviar mensagem para o Telegram
+            bot = telegram.Bot(token=bot_token)
+            bot.send_message(chat_id=chat_id, text=mensagem)
+
+        # Verificar se houve gol
+        elif evento == "gol" and gols:
+            mensagem = f"Gol de {gols} em {equipe_casa} x {equipe_visitante} ({placar})"
+            print(mensagem)
+
+            # Enviar mensagem para o Telegram
+            bot = telegram.Bot(token=bot_token)
+            bot.send_message(chat_id=chat_id, text=mensagem)
+
+        # Verificar se ambos os times marcaram no primeiro tempo
+        elif evento == "ambos_marcam" and "1st Half" in placar and "1 - 1" in placar and gols:
+            mensagem = f"Ambos os times marcaram no primeiro tempo de {equipe_casa} x {equipe_visitante} ({placar})"
+            print(mensagem)
+
+            # Enviar mensagem para o Telegram
+            bot = telegram.Bot(token=bot_token)
+            bot.send_message(chat_id=chat_id, text=mensagem)
+
+
